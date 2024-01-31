@@ -44,7 +44,7 @@ func (task *RunnableTask) Run() (exitCode int, err error) {
 
 	starttime := time.Now()
 	task.StartTime = starttime.Unix()
-	err = redisClient.LSet(task.RedisKey, 0, task.Json()).Err()
+	err = redisClient.LSet(myredis.Ctx, task.RedisKey, 0, task.Json()).Err()
 	if err != nil {
 		err = fmt.Errorf("Error updating working key 0: %v", err)
 		return

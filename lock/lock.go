@@ -12,7 +12,7 @@ import (
 	"brooce/listing"
 	myredis "brooce/redis"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 var redisClient = myredis.Get()
@@ -25,9 +25,9 @@ func GrabLocks(locks []string, actor string) (success bool, err error) {
 
 	results := make([]*redis.IntCmd, len(locks))
 
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
 		for i, lock := range locks {
-			results[i] = pipe.LPush(lockRedisKey(lock), actor)
+			results[i] = pipe.LPush(myredis.Ctx, lockRedisKey(lock), actor)
 		}
 		return nil
 	})
@@ -51,9 +51,9 @@ func ReleaseLocks(locks []string, actor string) (err error) {
 		return
 	}
 
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
 		for _, lock := range locks {
-			pipe.LRem(lockRedisKey(lock), 0, actor)
+			pipe.LRem(myredis.Ctx, lockRedisKey(lock), 0, actor)
 		}
 		return nil
 	})
@@ -88,10 +88,10 @@ func cleanupOwn() (err error) {
 		return
 	}
 
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
 		for _, thread := range config.Threads {
 			for _, key := range keys {
-				pipe.LRem(key, 0, thread.Name)
+				pipe.LRem(myredis.Ctx, key, 0, thread.Name)
 			}
 		}
 		return nil
@@ -108,9 +108,9 @@ func cleanupAll() (err error) {
 	}
 
 	lrangeResults := make([]*redis.StringSliceCmd, len(lockKeys))
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
 		for i, key := range lockKeys {
-			lrangeResults[i] = pipe.LRange(key, 0, -1)
+			lrangeResults[i] = pipe.LRange(myredis.Ctx, key, 0, -1)
 		}
 		return nil
 	})
@@ -141,11 +141,11 @@ func cleanupAll() (err error) {
 		return
 	}
 
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
 		for actor := range actors {
 			log.Println("Pruning orphaned lock actor", actor)
 			for _, key := range lockKeys {
-				pipe.LRem(key, 0, actor)
+				pipe.LRem(myredis.Ctx, key, 0, actor)
 			}
 		}
 		return nil

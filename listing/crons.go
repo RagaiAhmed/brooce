@@ -1,6 +1,8 @@
 package listing
 
 import (
+	myredis "brooce/redis"
+
 	"brooce/cron"
 	"log"
 )
@@ -22,7 +24,7 @@ func crons(disabled bool) (crons map[string]*cron.CronType, err error) {
 	}
 
 	var results map[string]string
-	results, err = redisClient.HGetAll(cronKey).Result()
+	results, err = redisClient.HGetAll(myredis.Ctx, cronKey).Result()
 	if err != nil || len(results) == 0 {
 		return
 	}

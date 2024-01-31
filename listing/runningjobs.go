@@ -6,7 +6,7 @@ import (
 	myredis "brooce/redis"
 	"brooce/task"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 var redisClient = myredis.Get()
@@ -48,9 +48,9 @@ func RunningJobs(fast bool) (jobs []*task.Task, err error) {
 	}
 
 	values := make([]*redis.StringCmd, len(keys))
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
 		for i, key := range keys {
-			values[i] = pipe.LIndex(key, 0)
+			values[i] = pipe.LIndex(myredis.Ctx, key, 0)
 		}
 		return nil
 	})

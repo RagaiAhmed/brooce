@@ -12,7 +12,7 @@ import (
 	myredis "brooce/redis"
 	"brooce/task"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 var redisClient = myredis.Get()
@@ -108,7 +108,7 @@ func expireList(list string, expire int) error {
 
 	queueName := task.QueueNameFromRedisKey(list)
 	for {
-		taskStr, err = redisClient.LIndex(list, -1).Result()
+		taskStr, err = redisClient.LIndex(myredis.Ctx, list, -1).Result()
 		// empty list
 		if err == redis.Nil {
 			break
@@ -127,7 +127,7 @@ func expireList(list string, expire int) error {
 		}
 
 		// grab the job...
-		taskStr, err = redisClient.RPop(list).Result()
+		taskStr, err = redisClient.RPop(myredis.Ctx, list).Result()
 
 		// it's possible for an item to vanish between the LINDEX and RPOP steps -- this is not fatal!
 		if err == redis.Nil {
@@ -144,7 +144,7 @@ func expireList(list string, expire int) error {
 
 		// ...and recheck for sure, this could be an another job too
 		if !jobHasExpired(job, expire) {
-			err = redisClient.RPush(list, taskStr).Err()
+			err = redisClient.RPush(myredis.Ctx, list, taskStr).Err()
 			if err != nil {
 				return err
 			}

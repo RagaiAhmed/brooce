@@ -22,12 +22,12 @@ func retryHandler(req *http.Request, rep *httpReply) (err error) {
 
 	if item := req.FormValue("item"); item != "" {
 		var count int64
-		count, err = redisClient.LRem(removeKey, 1, item).Result()
+		count, err = redisClient.LRem(myredis.Ctx, removeKey, 1, item).Result()
 		if err != nil {
 			return
 		}
 		if count == 1 {
-			redisClient.LPush(pushKey, item)
+			redisClient.LPush(myredis.Ctx, pushKey, item)
 		}
 	}
 
@@ -47,7 +47,7 @@ func deleteHandler(req *http.Request, rep *httpReply) (err error) {
 	removeKey := fmt.Sprintf("%s:queue:%s:%s", redisHeader, queueName, listType)
 
 	if item := req.FormValue("item"); item != "" {
-		err = redisClient.LRem(removeKey, 1, item).Err()
+		err = redisClient.LRem(myredis.Ctx, removeKey, 1, item).Err()
 	}
 
 	return
@@ -81,6 +81,6 @@ func deleteAllHandler(req *http.Request, rep *httpReply) (err error) {
 	queueName := path[2]
 
 	removeKey := fmt.Sprintf("%s:queue:%s:%s", redisHeader, queueName, listType)
-	err = redisClient.Del(removeKey).Err()
+	err = redisClient.Del(myredis.Ctx, removeKey).Err()
 	return
 }

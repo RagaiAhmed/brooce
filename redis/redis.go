@@ -1,3 +1,4 @@
+//go:build !cluster
 // +build !cluster
 
 package redis
@@ -8,9 +9,11 @@ import (
 	"time"
 
 	"brooce/config"
-
-	"github.com/go-redis/redis"
+	"context"
+	"github.com/redis/go-redis/v9"
 )
+
+var Ctx = context.Background()
 
 var redisClient *redis.Client
 var once sync.Once
@@ -39,7 +42,7 @@ func Get() *redis.Client {
 			DB:           config.Config.Redis.DB,
 		})
 
-		err := redisClient.Ping().Err()
+		err := redisClient.Ping(Ctx).Err()
 		if err != nil {
 			log.Fatalln("Can't reach redis at", addr, "-- are your redis addr and password right?", err)
 		}
@@ -55,13 +58,13 @@ func Get() *redis.Client {
 // is being both flushed and repopulated (by a worker thread) forever
 func FlushList(src, dst string) error {
 	redisClient := Get()
-	length, err := redisClient.LLen(src).Result()
+	length, err := redisClient.LLen(Ctx, src).Result()
 	if err != nil {
 		return err
 	}
 
 	for i := int64(0); i < length; i++ {
-		_, err = redisClient.RPopLPush(src, dst).Result()
+		_, err = redisClient.RPopLPush(Ctx, src, dst).Result()
 		if err != nil {
 			break
 		}
@@ -77,8 +80,8 @@ func FlushList(src, dst string) error {
 func ScanKeys(match string) (keys []string, err error) {
 	redisClient := Get()
 
-	iter := redisClient.Scan(0, match, 10000).Iterator()
-	for iter.Next() {
+	iter := redisClient.Scan(Ctx, 0, match, 10000).Iterator()
+	for iter.Next(Ctx) {
 		keys = append(keys, iter.Val())
 	}
 	err = iter.Err()

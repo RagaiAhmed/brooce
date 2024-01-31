@@ -1,3 +1,4 @@
+//go:build cluster
 // +build cluster
 
 package redis
@@ -9,9 +10,11 @@ import (
 	"time"
 
 	"brooce/config"
-
-	"github.com/go-redis/redis"
+	"context"
+	"github.com/redis/go-redis/v9"
 )
+
+var Ctx = context.Background()
 
 var redisClient *redis.ClusterClient
 var once sync.Once
@@ -32,7 +35,7 @@ func Get() *redis.ClusterClient {
 		})
 
 		for {
-			err := redisClient.Ping().Err()
+			err := redisClient.Ping(Ctx).Err()
 			if err == nil {
 				break
 			}
@@ -47,7 +50,7 @@ func Get() *redis.ClusterClient {
 func FlushList(src, dst string) (err error) {
 	redisClient := Get()
 	for err == nil {
-		_, err = redisClient.RPopLPush(src, dst).Result()
+		_, err = redisClient.RPopLPush(Ctx, src, dst).Result()
 	}
 
 	if err == redis.Nil {
@@ -60,9 +63,9 @@ func FlushList(src, dst string) (err error) {
 func ScanKeys(match string) (keys []string, err error) {
 	redisClient := Get()
 
-	err = redisClient.ForEachMaster(func(client *redis.Client) error {
-		iter := client.Scan(0, match, 10000).Iterator()
-		for iter.Next() {
+	err = redisClient.ForEachMaster(Ctx, func(ctx context.Context, client *redis.Client) error {
+		iter := client.Scan(ctx, 0, match, 10000).Iterator()
+		for iter.Next(ctx) {
 			keys = append(keys, iter.Val())
 		}
 		return iter.Err()

@@ -98,7 +98,7 @@ func Start() {
 
 func heartbeat() {
 	key := fmt.Sprintf("%s:workerprocs", config.Config.ClusterName)
-	err := redisClient.HSet(key, config.Config.ProcName, makeHeartbeat()).Err()
+	err := redisClient.HSet(myredis.Ctx, key, config.Config.ProcName, makeHeartbeat()).Err()
 	if err != nil {
 		log.Println("redis heartbeat error:", err)
 	}

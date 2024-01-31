@@ -23,7 +23,7 @@ import (
 	tasklib "brooce/task"
 	"brooce/web"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 	daemon "github.com/sevlyar/go-daemon"
 )
 
@@ -103,7 +103,7 @@ func runner(thread config.ThreadType) {
 			return
 		}
 
-		taskStr, err := redisClient.BRPopLPush(thread.PendingList(), thread.WorkingList(), 15*time.Second).Result()
+		taskStr, err := redisClient.BRPopLPush(myredis.Ctx, thread.PendingList(), thread.WorkingList(), 15*time.Second).Result()
 		if err != nil {
 			if err != redis.Nil {
 				log.Println("redis error while running BRPOPLPUSH:", err)
@@ -113,7 +113,7 @@ func runner(thread config.ThreadType) {
 
 		// thread.WorkingList() should have 1 item now
 		// if it has less or more, something went wrong!
-		length := redisClient.LLen(thread.WorkingList())
+		length := redisClient.LLen(myredis.Ctx, thread.WorkingList())
 		if length.Err() != nil {
 			log.Println("Error while checking length of", thread.WorkingList(), ":", err)
 			continue
@@ -147,30 +147,30 @@ func runner(thread config.ThreadType) {
 			}
 		}
 
-		_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
+		_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
 
 			// Unix standard "temp fail" code
 			if exitCode == 75 {
 				// DELAYED
 				if !task.KillOnDelay() {
-					pipe.LPush(thread.DelayedList(), task.Json())
+					pipe.LPush(myredis.Ctx, thread.DelayedList(), task.Json())
 				}
 
 			} else if (err != nil || exitCode != 0) && !task.NoFail() {
 				// FAILED
 				if task.MaxTries() > task.Tried {
-					pipe.LPush(thread.DelayedList(), task.Json())
+					pipe.LPush(myredis.Ctx, thread.DelayedList(), task.Json())
 				} else {
 					if task.RedisLogFailedExpireAfter() > 0 {
-						pipe.Expire(task.LogKey(), time.Duration(task.RedisLogFailedExpireAfter())*time.Second)
+						pipe.Expire(myredis.Ctx, task.LogKey(), time.Duration(task.RedisLogFailedExpireAfter())*time.Second)
 					}
 
 					if !task.DropOnFail() {
-						pipe.LPush(thread.FailedList(), task.Json())
+						pipe.LPush(myredis.Ctx, thread.FailedList(), task.Json())
 					}
 
 					if task.NoRedisLogOnFail() && task.LogKey() != "" {
-						pipe.Del(task.LogKey())
+						pipe.Del(myredis.Ctx, task.LogKey())
 					}
 				}
 
@@ -178,15 +178,15 @@ func runner(thread config.ThreadType) {
 				// DONE
 
 				if !task.DropOnSuccess() {
-					pipe.LPush(thread.DoneList(), task.Json())
+					pipe.LPush(myredis.Ctx, thread.DoneList(), task.Json())
 				}
 
 				if task.NoRedisLogOnSuccess() && task.LogKey() != "" {
-					pipe.Del(task.LogKey())
+					pipe.Del(myredis.Ctx, task.LogKey())
 				}
 			}
 
-			pipe.LPop(thread.WorkingList())
+			pipe.LPop(myredis.Ctx, thread.WorkingList())
 			return nil
 		})
 

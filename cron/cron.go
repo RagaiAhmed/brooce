@@ -10,7 +10,7 @@ import (
 	myredis "brooce/redis"
 	tasklib "brooce/task"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 var redisClient = myredis.Get()
@@ -42,27 +42,27 @@ type CronType struct {
 }
 
 func (cron *CronType) Disable() (err error) {
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
-		pipe.HDel(RedisKeyEnabled, cron.Name)
-		pipe.HSet(RedisKeyDisabled, cron.Name, cron.Raw)
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
+		pipe.HDel(myredis.Ctx, RedisKeyEnabled, cron.Name)
+		pipe.HSet(myredis.Ctx, RedisKeyDisabled, cron.Name, cron.Raw)
 		return nil
 	})
 	return
 }
 
 func (cron *CronType) Enable() (err error) {
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
-		pipe.HDel(RedisKeyDisabled, cron.Name)
-		pipe.HSet(RedisKeyEnabled, cron.Name, cron.Raw)
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
+		pipe.HDel(myredis.Ctx, RedisKeyDisabled, cron.Name)
+		pipe.HSet(myredis.Ctx, RedisKeyEnabled, cron.Name, cron.Raw)
 		return nil
 	})
 	return
 }
 
 func (cron *CronType) Delete() (err error) {
-	_, err = redisClient.Pipelined(func(pipe redis.Pipeliner) error {
-		pipe.HDel(RedisKeyDisabled, cron.Name)
-		pipe.HDel(RedisKeyEnabled, cron.Name)
+	_, err = redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
+		pipe.HDel(myredis.Ctx, RedisKeyDisabled, cron.Name)
+		pipe.HDel(myredis.Ctx, RedisKeyEnabled, cron.Name)
 		return nil
 	})
 	return
@@ -70,7 +70,7 @@ func (cron *CronType) Delete() (err error) {
 
 func (cron *CronType) Run() (err error) {
 	pendingList := fmt.Sprintf("%s:queue:%s:pending", redisHeader, cron.Queue)
-	err = redisClient.LPush(pendingList, cron.Task().Json()).Err()
+	err = redisClient.LPush(myredis.Ctx, pendingList, cron.Task().Json()).Err()
 	return
 }
 
@@ -78,9 +78,9 @@ func Get(name string) (cron *CronType, err error) {
 	var line string
 	disabled := false
 
-	line, err = redisClient.HGet(RedisKeyEnabled, name).Result()
+	line, err = redisClient.HGet(myredis.Ctx, RedisKeyEnabled, name).Result()
 	if err != nil {
-		line, err = redisClient.HGet(RedisKeyDisabled, name).Result()
+		line, err = redisClient.HGet(myredis.Ctx, RedisKeyDisabled, name).Result()
 
 		if err != nil {
 			return

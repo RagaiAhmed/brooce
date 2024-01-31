@@ -2,13 +2,13 @@ module brooce
 
 require (
 	github.com/fsnotify/fsnotify v1.4.7 // indirect
-	github.com/go-redis/redis v6.14.1+incompatible
 	github.com/golang/protobuf v1.2.0 // indirect
 	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1 // indirect
 	github.com/mitchellh/copystructure v1.0.0
 	github.com/onsi/ginkgo v1.6.0 // indirect
 	github.com/onsi/gomega v1.4.1 // indirect
+	github.com/redis/go-redis/v9 v9.4.0 // indirect
 	github.com/sevlyar/go-daemon v0.1.4
 	golang.org/x/net v0.0.0-20180906233101-161cd47e91fd // indirect
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect

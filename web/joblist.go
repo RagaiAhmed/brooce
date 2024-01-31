@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strconv"
 
+	myredis "brooce/redis"
+
 	"brooce/task"
 )
 
@@ -111,7 +113,7 @@ func (output *joblistOutputType) listJobs() (err error) {
 	reverse := (output.ListType == "pending")
 	redisKey := fmt.Sprintf("%s:queue:%s:%s", redisHeader, output.QueueName, output.ListType)
 
-	output.Length, err = redisClient.LLen(redisKey).Result()
+	output.Length, err = redisClient.LLen(myredis.Ctx, redisKey).Result()
 	if err != nil {
 		return err
 	}
@@ -130,7 +132,7 @@ func (output *joblistOutputType) listJobs() (err error) {
 	}
 
 	var jobs []string
-	jobs, err = redisClient.LRange(redisKey, rangeStart, rangeEnd).Result()
+	jobs, err = redisClient.LRange(myredis.Ctx, redisKey, rangeStart, rangeEnd).Result()
 	if err != nil {
 		return err
 	}

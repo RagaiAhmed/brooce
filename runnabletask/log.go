@@ -1,12 +1,13 @@
 package runnabletask
 
 import (
+	myredis "brooce/redis"
 	"bytes"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 func (task *RunnableTask) WriteLog(str string) {
@@ -44,11 +45,11 @@ func (task *RunnableTask) Flush() {
 		return
 	}
 
-	_, err := redisClient.Pipelined(func(pipe redis.Pipeliner) error {
-		pipe.Append(task.LogKey(), task.buffer.String())
+	_, err := redisClient.Pipelined(myredis.Ctx, func(pipe redis.Pipeliner) error {
+		pipe.Append(myredis.Ctx, task.LogKey(), task.buffer.String())
 
 		if task.RedisLogExpireAfter() > 0 {
-			pipe.Expire(task.LogKey(), time.Duration(task.RedisLogExpireAfter())*time.Second)
+			pipe.Expire(myredis.Ctx, task.LogKey(), time.Duration(task.RedisLogExpireAfter())*time.Second)
 		}
 		return nil
 	})
@@ -81,7 +82,7 @@ func (task *RunnableTask) StopFlushingLog() {
 
 func (task *RunnableTask) GenerateId() (err error) {
 	var counter int64
-	counter, err = redisClient.Incr(redisHeader + ":counter").Result()
+	counter, err = redisClient.Incr(myredis.Ctx, redisHeader+":counter").Result()
 
 	if err == nil {
 		task.Id = fmt.Sprintf("%v", counter)

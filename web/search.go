@@ -85,7 +85,7 @@ func searchQueue(query, queueName, listType string) []string {
 	queueKey := fmt.Sprintf("%s:queue:%s:%s", redisHeader, queueName, listType)
 
 	found := []string{}
-	vals := r.LRange(queueKey, 0, -1).Val()
+	vals := r.LRange(myredis.Ctx, queueKey, 0, -1).Val()
 
 	for _, v := range vals {
 		if strings.Contains(v, query) {
